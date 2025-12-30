@@ -36,9 +36,9 @@ app.post("/create-checkout-session", async (req, res) => {
           quantity: 1,
         },
       ],
-      success_url:
-        "http://127.0.0.1:5500/public/index.html?session_id={CHECKOUT_SESSION_ID}",
-      cancel_url: "http://127.0.0.1:5500/public/index.html",
+    success_url: "https://berlin-365.vercel.app/?session_id={CHECKOUT_SESSION_ID}",
+cancel_url: "https://berlin-365.vercel.app/",
+
     });
 
     console.log("✅ Stripe session created:", session.id);
