@@ -1,5 +1,4 @@
 import express from "express";
-import Stripe from "stripe";
 import cors from "cors";
 import fetch from "node-fetch";
 import Stripe from "stripe";
@@ -86,7 +85,8 @@ app.get("/download", async (req, res) => {
 // ===============================
 // 3️⃣ Start server
 // ===============================
-const PORT = 4242;
+const PORT = process.env.PORT || 4242;
+
 app.listen(PORT, () => {
-  console.log(`✅ Stripe server running on http://localhost:${PORT}`);
+  console.log(`✅ Server running on port ${PORT}`);
 });
