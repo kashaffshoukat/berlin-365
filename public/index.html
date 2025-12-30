@@ -787,13 +787,12 @@ function openAlbum(date, photos) {
     btn.onclick = () => handleDownload(item.url);
 
     // PAYMENT BADGE
-    const paymentsEnabled = localStorage.getItem('paymentsEnabled') === 'true';
-  if (paymentsEnabled) {
-  const badge = document.createElement('div');
-  badge.className = 'payment-badge';
-  badge.textContent = 'Paid';
-  wrap.appendChild(badge);
-}
+   const paymentsEnabled = localStorage.getItem('paymentsEnabled') === 'true';
+
+btn.disabled = !paymentsEnabled;
+btn.style.opacity = paymentsEnabled ? '1' : '0.5';
+btn.style.cursor = paymentsEnabled ? 'pointer' : 'not-allowed';
+
 
 
     wrap.appendChild(img);
@@ -835,20 +834,32 @@ function submitReview(){
   alert('Thank you for your review!');
 }
 async function handleDownload(imageUrl) {
-  const price = localStorage.getItem("price") || 3;
 
+  const paymentsEnabled = localStorage.getItem('paymentsEnabled') === 'true';
+
+  // 🔒 Payments disabled → block Stripe
+  if (!paymentsEnabled) {
+    alert('Payments are currently disabled');
+    return;
+  }
+
+  const price = localStorage.getItem("price") || 3;
   localStorage.setItem("pendingDownload", imageUrl);
 
-fetch("https://berlin-365.onrender.com/create-checkout-session", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-  },
-})
-.then(res => res.json())
-.then(data => {
+  const res = await fetch("https://berlin-365.onrender.com/create-checkout-session", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ imageUrl, price })
+  });
+
+  const data = await res.json();
+
+  if (!data.url) {
+    alert("Stripe session not created");
+    return;
+  }
+
   window.location.href = data.url;
-});
 }
 
 
