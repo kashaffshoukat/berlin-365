@@ -839,23 +839,16 @@ async function handleDownload(imageUrl) {
 
   localStorage.setItem("pendingDownload", imageUrl);
 
-  const res = await fetch("http://localhost:4242/create-checkout-session", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ imageUrl, price })
-  });
-
-  console.log("RES STATUS:", res.status);
-
-  const data = await res.json();
-  console.log("STRIPE RESPONSE:", data);
-
-  if (!data.url) {
-    alert("Stripe session not created. Check server.");
-    return;
-  }
-
+fetch("https://berlin-365.onrender.com/create-checkout-session", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+  },
+})
+.then(res => res.json())
+.then(data => {
   window.location.href = data.url;
+});
 }
 
 
@@ -892,7 +885,8 @@ if (sessionId) {
 
   if (imageUrl) {
     window.location.href =
-      `http://localhost:4242/download?session_id=${sessionId}&url=${encodeURIComponent(imageUrl)}`;
+  `https://berlin-365.onrender.com/download?session_id=${sessionId}&url=${encodeURIComponent(imageUrl)}`;
+
 
     localStorage.removeItem("pendingDownload");
   }
