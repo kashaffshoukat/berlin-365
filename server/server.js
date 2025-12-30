@@ -81,6 +81,9 @@ app.get("/download", async (req, res) => {
     res.status(500).send("Download failed");
   }
 });
+app.get("/", (req, res) => {
+  res.send("Berlin-365 backend is live 🚀");
+});
 
 // ===============================
 // 3️⃣ Start server
