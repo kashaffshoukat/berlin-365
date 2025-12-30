@@ -738,7 +738,7 @@ const coverBtn = document.createElement('button');
 coverBtn.className = 'cover-btn';
 coverBtn.textContent = 'Set as Cover';
 
-const covers = JSON.parse(localStorage.getItem('albumCovers') || {});
+const covers = JSON.parse(localStorage.getItem('albumCovers') || '{}');
 
 // If this image is already the cover
 if (covers[i.date] === i.url) {
@@ -769,8 +769,8 @@ setInterval(() => {
     const url = img.src;
 
     const all =
-      JSON.parse(localStorage.getItem('images') || [])
-      .concat(JSON.parse(localStorage.getItem('eventGallery') || []));
+JSON.parse(localStorage.getItem('images') || '[]')
+      .concat(JSON.parse(localStorage.getItem('eventGallery') || '[]'));
 
     const item = all.find(i => i.url === url);
     if (!item) return;
@@ -779,7 +779,8 @@ setInterval(() => {
   });
 }, 60000);
 function setAlbumCover(date, url) {
-  const covers = JSON.parse(localStorage.getItem('albumCovers') || {});
+  const covers = JSON.parse(localStorage.getItem('albumCovers') || '{}')
+
   covers[date] = url;
   localStorage.setItem('albumCovers', JSON.stringify(covers));
   alert('✅ Album cover saved for ' + date);
