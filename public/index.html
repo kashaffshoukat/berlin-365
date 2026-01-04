@@ -553,15 +553,22 @@ function buildDays(filterIndex=null){
     used.add(key);
 
     const d=document.createElement('div');
-    d.className='day'+((filterIndex===null && e.index===0)||(filterIndex===e.index)?' active':'');
+d.className =
+  'day' +
+  ((filterIndex === null && e.index === getTodayIndex()) ||
+   filterIndex === e.index
+    ? ' active'
+    : '');
     d.textContent=key;
     d.onclick=()=>selectEvent(e.index);
     daysEl.appendChild(d);
   });
 }function getTodayIndex() {
-  const today = new Date().toLocaleDateString('en-US', { weekday: 'short' });
-  return events.findIndex(e => e.weekday === today);
+  const today = new Date().toDateString();
+  return events.findIndex(e => e.date === today);
 }
+
+let selectedEventIndex = 0;
 
 
 /* ================= RENDER ================= */
@@ -570,7 +577,9 @@ function render(e){
   <div class="event-card">
     <img src="${e.img}">
     <div class="event-info">
-      <div>${e.label} ${e.date} | 22:00</div>
+    <div>${e.label} • ${e.date} | 22:00</div>
+
+
       <h2>${e.title}</h2>
       <ul>
         <li>🎵 ${e.music.join(' · ')}</li>
@@ -586,20 +595,80 @@ function render(e){
 }
 
 function selectEvent(i){
+  selectedEventIndex = i; // 👈 track selected event
+
   document.querySelectorAll('.day').forEach(d=>d.classList.remove('active'));
-  const e=events[i];
+  const e = events[i];
+
   [...daysEl.children].forEach(d=>{
-    if(d.textContent===(e.label==='Today'?'Today':e.weekday)) d.classList.add('active');
+    if(d.textContent.includes(e.weekday)) d.classList.add('active');
   });
+
   render(e);
+  updateCountdown(); // 👈 update countdown when clicking
 }
 
+
 /* ================= COUNTDOWN ================= */
-function updateCountdown(){
-  const end=events.at(-1).dateObj;
-  const days=Math.max(0,Math.ceil((end-new Date())/86400000));
-  countdownEl.style.background=days<=5?'#e63946':days<=10?'#f2c94c':'#2ecc71';
-  countdownEl.textContent=`${days} ${translations[currentLang].daysLeft}`;
+function updateCountdown() {
+  const e = events[selectedEventIndex];
+  if (!e || !e.dateObj) return;
+
+  const now = new Date();
+  const eventDate = e.dateObj;
+
+  // event already started
+  if (eventDate <= now) {
+    countdownEl.textContent = translations[currentLang].today || 'Happening today';
+    countdownEl.style.background = '#00A6A6';
+    return;
+  }
+
+  // midnight of event day
+  const eventMidnight = new Date(eventDate);
+  eventMidnight.setHours(0, 0, 0, 0);
+
+  const msUntilMidnight = eventMidnight - now;
+ const msUntilEvent = eventDate - new Date();
+
+if (msUntilEvent <= 0) {
+  countdownEl.textContent = 'Started';
+  return;
+}
+
+const totalMinutes = Math.floor(msUntilEvent / 60000);
+const totalHours = Math.floor(totalMinutes / 60);
+
+// LAST HOUR → show minutes
+if (totalMinutes < 60) {
+  countdownEl.textContent = `${totalMinutes} minutes left`;
+  countdownEl.style.background = '#e63946';
+  return;
+}
+
+// HOURS → human-friendly rounding
+const displayHours =
+  totalMinutes % 60 === 0
+    ? totalHours
+    : totalHours + 1;
+
+countdownEl.textContent =
+  displayHours === 1
+    ? '1 hour left'
+    : `${displayHours} hours left`;
+
+countdownEl.style.background = '#e63946';
+
+  // 👉 BEFORE EVENT DAY → DAYS ONLY
+  const daysLeft = Math.ceil(msUntilMidnight / 86400000);
+
+  const dayLabel =
+    daysLeft === 1
+      ? translations[currentLang].dayLeft || 'day left'
+      : translations[currentLang].daysLeft || 'days left';
+
+  countdownEl.textContent = `${daysLeft} ${dayLabel}`;
+  countdownEl.style.background = '#f2c94c';
 }
 
 /* ================= SEARCH (UPDATED, SAFE) ================= */
@@ -633,34 +702,43 @@ searchEl.addEventListener('input',e=>{
     noResultsEl.textContent=translations[currentLang].noResults;
   }
 });
+function assignDatesToEvents() {
+  const today = new Date();
+  const todayDay = today.getDay(); // 0 = Sun, 1 = Mon ...
+
+  events.forEach(event => {
+    const eventDayIndex = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
+      .indexOf(event.weekday);
+
+    let diff = eventDayIndex - todayDay;
+    if (diff < 0) diff += 7; // move to next week if passed
+
+    const eventDate = new Date(today);
+    eventDate.setDate(today.getDate() + diff);
+    eventDate.setHours(22, 0, 0, 0); // event time
+
+    event.dateObj = eventDate;
+    event.date = eventDate.toDateString();
+  });
+}
 
 /* ================= LANGUAGE ================= */
 let currentLang='en';
 
-const translations={
-  en:{
-    club:'Island Moments Gallerys',
-    search:'Search events...',
-    gallery:'Event Gallery',
-    gallerySub:'All photos free at launch • Tap to open • Download available',
-    more:'More information',
-    reserve:'Reserve a table',
-    support:'Support',
-    chat:'👋 Hi! What’s your Instagram handle?',
-    daysLeft:'DAYS LEFT',
-    noResults:'No event found'
+const translations = {
+  en: {
+    daysLeft: 'days left',
+    dayLeft: 'day left',
+    hoursLeft: 'hours left',
+    hourLeft: 'hour left',
+    today: 'Happening today'
   },
-  de:{
-    club:'Clubnächte',
-    search:'Events suchen…',
-    gallery:'Event Galerie',
-    gallerySub:'Alle Fotos gratis • Antippen • Download verfügbar',
-    more:'Mehr Informationen',
-    reserve:'Tisch reservieren',
-    support:'Support',
-    chat:'👋 Wie lautet dein Instagram-Name?',
-    daysLeft:'TAGE ÜBRIG',
-    noResults:'Kein Event gefunden'
+  de: {
+    daysLeft: 'Tage übrig',
+    dayLeft: 'Tag übrig',
+    hoursLeft: 'Stunden übrig',
+    hourLeft: 'Stunde übrig',
+    today: 'Heute'
   }
 };
 
@@ -685,12 +763,19 @@ function applyLang(){
 }
 
 /* ================= INIT ================= */
+/* ================= INIT ================= */
+/* ================= INIT ================= */
+assignDatesToEvents();
+
 const todayIndex = getTodayIndex();
+selectedEventIndex = todayIndex !== -1 ? todayIndex : 0;
 
 buildDays();
-selectEvent(todayIndex !== -1 ? todayIndex : 0);
-updateCountdown();
-setInterval(updateCountdown,3600000);
+selectEvent(selectedEventIndex);
+
+// refresh countdown every hour
+setInterval(updateCountdown, 3600000);
+
 
 document.getElementById('adminBtn').onclick=()=>{
 window.location.href='admin-login.html';
@@ -868,31 +953,19 @@ async function handleDownload(imageUrl) {
 
   window.location.href = data.url;
 }
-async function freeDownload(url) {
-  try {
-    const response = await fetch(url, { mode: 'cors' });
-    const blob = await response.blob();
 
-    const blobUrl = window.URL.createObjectURL(blob);
+function freeDownload(url) {
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = '';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
 
-    const a = document.createElement('a');
-    a.href = blobUrl;
-    a.download = `image-${Date.now()}.jpg`; // force filename
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-
-    window.URL.revokeObjectURL(blobUrl);
-
-    // analytics
-    const analytics = JSON.parse(localStorage.getItem('analytics') || '{}');
-    analytics.downloads = (analytics.downloads || 0) + 1;
-    localStorage.setItem('analytics', JSON.stringify(analytics));
-
-  } catch (err) {
-    alert("Download failed. Browser blocked the request.");
-    console.error(err);
-  }
+  // analytics
+  const analytics = JSON.parse(localStorage.getItem('analytics') || '{}');
+  analytics.downloads = (analytics.downloads || 0) + 1;
+  localStorage.setItem('analytics', JSON.stringify(analytics));
 }
 
 
