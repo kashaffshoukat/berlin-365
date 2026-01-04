@@ -65,7 +65,7 @@ body{
   background:#26245c;
   color:#fff;
   font-size:15px;
-  text-align: ;
+  text-align:center ;
 }
 
 .input-box input::placeholder{
@@ -219,7 +219,8 @@ window.login = async function () {
     }
 
     // 3️⃣ Success
-    window.location.href = "admin.html";
+  window.location.replace("admin.html");
+
 
   } catch (err) {
     console.error(err);
