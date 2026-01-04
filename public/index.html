@@ -953,19 +953,31 @@ async function handleDownload(imageUrl) {
 
   window.location.href = data.url;
 }
+async function freeDownload(url) {
+  try {
+    const response = await fetch(url, { mode: 'cors' });
+    const blob = await response.blob();
 
-function freeDownload(url) {
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = '';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
+    const blobUrl = window.URL.createObjectURL(blob);
 
-  // analytics
-  const analytics = JSON.parse(localStorage.getItem('analytics') || '{}');
-  analytics.downloads = (analytics.downloads || 0) + 1;
-  localStorage.setItem('analytics', JSON.stringify(analytics));
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = 'island-moments.jpg'; // 👈 filename
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+
+    window.URL.revokeObjectURL(blobUrl);
+
+    // analytics
+    const analytics = JSON.parse(localStorage.getItem('analytics') || '{}');
+    analytics.downloads = (analytics.downloads || 0) + 1;
+    localStorage.setItem('analytics', JSON.stringify(analytics));
+
+  } catch (err) {
+    alert('Download failed. Please try again.');
+    console.error(err);
+  }
 }
 
 
