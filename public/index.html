@@ -784,15 +784,27 @@ function openAlbum(date, photos) {
     btn.style.left = '50%';
     btn.style.transform = 'translateX(-50%)';
 
-    btn.onclick = () => handleDownload(item.url);
+    btn.onclick = () => {
+  const paymentsEnabled = localStorage.getItem('paymentsEnabled') === 'true';
+
+  if (!paymentsEnabled) {
+    // FREE DOWNLOAD MODE
+    freeDownload(item.url);
+  } else {
+    // PAID DOWNLOAD MODE
+    handleDownload(item.url);
+  }
+};
+
 
     // PAYMENT BADGE
-   const paymentsEnabled = localStorage.getItem('paymentsEnabled') === 'true';
-
-btn.disabled = !paymentsEnabled;
-btn.style.opacity = paymentsEnabled ? '1' : '0.5';
-btn.style.cursor = paymentsEnabled ? 'pointer' : 'not-allowed';
-
+    const paymentsEnabled = localStorage.getItem('paymentsEnabled') === 'true';
+  if (paymentsEnabled) {
+  const badge = document.createElement('div');
+  badge.className = 'payment-badge';
+  badge.textContent = 'Paid';
+  wrap.appendChild(badge);
+}
 
 
     wrap.appendChild(img);
@@ -834,34 +846,54 @@ function submitReview(){
   alert('Thank you for your review!');
 }
 async function handleDownload(imageUrl) {
-
-  const paymentsEnabled = localStorage.getItem('paymentsEnabled') === 'true';
-
-  // 🔒 Payments disabled → block Stripe
-  if (!paymentsEnabled) {
-    alert('Payments are currently disabled');
-    return;
-  }
-
   const price = localStorage.getItem("price") || 3;
+
   localStorage.setItem("pendingDownload", imageUrl);
 
-  const res = await fetch("https://berlin-365.onrender.com/create-checkout-session", {
+  const res = await fetch("http://localhost:4242/create-checkout-session", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ imageUrl, price })
   });
 
+  console.log("RES STATUS:", res.status);
+
   const data = await res.json();
+  console.log("STRIPE RESPONSE:", data);
 
   if (!data.url) {
-    alert("Stripe session not created");
+    alert("Stripe session not created. Check server.");
     return;
   }
 
   window.location.href = data.url;
 }
+async function freeDownload(url) {
+  try {
+    const response = await fetch(url, { mode: 'cors' });
+    const blob = await response.blob();
 
+    const blobUrl = window.URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = `image-${Date.now()}.jpg`; // force filename
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+
+    window.URL.revokeObjectURL(blobUrl);
+
+    // analytics
+    const analytics = JSON.parse(localStorage.getItem('analytics') || '{}');
+    analytics.downloads = (analytics.downloads || 0) + 1;
+    localStorage.setItem('analytics', JSON.stringify(analytics));
+
+  } catch (err) {
+    alert("Download failed. Browser blocked the request.");
+    console.error(err);
+  }
+}
 
 
 function loadImage(src) {
@@ -896,8 +928,7 @@ if (sessionId) {
 
   if (imageUrl) {
     window.location.href =
-  `https://berlin-365.onrender.com/download?session_id=${sessionId}&url=${encodeURIComponent(imageUrl)}`;
-
+      `http://localhost:4242/download?session_id=${sessionId}&url=${encodeURIComponent(imageUrl)}`;
 
     localStorage.removeItem("pendingDownload");
   }
